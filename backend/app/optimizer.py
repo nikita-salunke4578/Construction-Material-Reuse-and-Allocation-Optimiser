@@ -7,7 +7,7 @@ def distance_km(a_lat,a_lng,b_lat,b_lng):
     x=sin(dlat/2)**2+cos(radians(a_lat))*cos(radians(b_lat))*sin(dlng/2)**2
     return 6371*2*asin(sqrt(x))
 
-def optimise(materials, demands, monsoon_priority=25):
+def optimise(materials, demands):
     """MILP maximises fulfilled demand while penalising cost, distance and emissions.
     PuLP/CBC is used when available; deterministic constrained fallback keeps API usable.
     """
@@ -28,8 +28,8 @@ def optimise(materials, demands, monsoon_priority=25):
             cost=road_km*rate
             kgco2=road_km*0.12 # kg CO2e / tonne-km, estimated factor
             urgency=max(0,1-min(days,30)/30)
-            monsoon_bonus=(monsoon_priority/100)*urgency*0.18
-            score=1.0 + monsoon_bonus - (cost/10000)*0.18 - (kgco2/100)*0.12
+            urgency_bonus=urgency*0.18
+            score=1.0 + urgency_bonus - (cost/10000)*0.18 - (kgco2/100)*0.12
             candidates.append((m,d,qty,dist,cost,kgco2,score))
     results=[]
     try:

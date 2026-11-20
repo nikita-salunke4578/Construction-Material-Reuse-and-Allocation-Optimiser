@@ -12,12 +12,12 @@ def test_contaminated_blocked(): assert assess_material(mat(contamination=True),
 def test_old_unverified_restricted_for_recharge(): assert assess_material(mat(building_year=1990),"recharge pit")["status"]=="restricted"
 def test_old_material_allowed_other_use(): assert assess_material(mat(building_year=1990),"road sub-base")["safe_for_use"]
 def test_optimizer_respects_supply_and_demand():
-    results,_=optimise([mat(quantity=4)],[dem(quantity=8)],0)
+    results,_=optimise([mat(quantity=4)],[dem(quantity=8)])
     assert sum(x["quantity"] for x in results)<=4.001
-    results,_=optimise([mat(quantity=10)],[dem(quantity=3)],0)
+    results,_=optimise([mat(quantity=10)],[dem(quantity=3)])
     assert sum(x["quantity"] for x in results)<=3.001
 def test_optimizer_excludes_unsafe():
-    results,_=optimise([mat(contamination=True)],[dem()],0); assert results==[]
+    results,_=optimise([mat(contamination=True)],[dem()]); assert results==[]
 
 from app.inventory import reserve_stock, deliver_stock
 def test_inventory_reservation_and_delivery():

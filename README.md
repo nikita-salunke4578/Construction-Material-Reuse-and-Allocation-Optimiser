@@ -47,7 +47,7 @@ Other seeded supplier accounts: `supplier2@demo.reuse` through `supplier5@demo.r
 1. Sign in as a supplier. Browse seeded inventory or add a recovered concrete listing. The listing assistant uses the OpenAI API when `AI_PROVIDER=openai` and `OPENAI_API_KEY` is configured; otherwise it uses the deterministic parser. Review all fields before saving.
 2. Sign in as a buyer and post a demand, e.g. concrete rubble for a recharge pit. Demands include location, minimum quality and deadline.
 3. Sign in as admin. Open **Safety & audit** to inspect rule-based material passports. Contaminated, painted and treated stock is blocked; pre-2000 stock requires lab verification for farm/water uses.
-4. Open **Optimiser**, change monsoon priority and run the solver. The setting changes the urgency bonus. The PuLP model maximises weighted feasible allocations under per-material stock and per-demand quantity constraints.
+4. Open **Optimiser** and run the solver. The PuLP model automatically prioritises deadline urgency while respecting per-material stock and per-demand quantity constraints.
 5. Inspect proposed matches and routes on **Network map**. Confirm an allocation to reserve stock, dispatch it to In Transit, then mark it Delivered.
 6. **Impact** totals update only for Delivered allocations. Export the impact CSV.
 

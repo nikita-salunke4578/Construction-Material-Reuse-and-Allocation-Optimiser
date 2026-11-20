@@ -30,7 +30,7 @@ def user_dict(u): return {"id":u.id,"name":u.name,"email":u.email,"role":u.role,
 def material_dict(m):
     return {"id":m.id,"supplier_id":m.supplier_id,"supplier":m.supplier.name,"title":m.title,"material_type":m.material_type,"description":m.description,"quantity":m.quantity,"reserved_quantity":m.reserved_quantity,"available_quantity":m.available_quantity,"unit":m.unit,"quality":m.quality,"condition":m.condition,"building_year":m.building_year,"contamination":m.contamination,"painted":m.painted,"treated":m.treated,"lab_verified":m.lab_verified,"lat":m.lat,"lng":m.lng,"location":m.location,"price_per_unit":m.price_per_unit,"image_url":m.image_url,"passport":assess_material(m)}
 def demand_dict(d): return {"id":d.id,"buyer_id":d.buyer_id,"buyer":d.buyer.name,"title":d.title,"material_type":d.material_type,"quantity":d.quantity,"unit":d.unit,"min_quality":d.min_quality,"intended_use":d.intended_use,"deadline":d.deadline.isoformat(),"lat":d.lat,"lng":d.lng,"location":d.location,"status":d.status}
-def allocation_dict(a): return {"id":a.id,"material_id":a.material_id,"demand_id":a.demand_id,"material_title":a.material.title,"demand_title":a.demand.title,"supplier":a.material.supplier.name,"buyer":a.demand.buyer.name,"quantity":a.quantity,"distance_km":a.distance_km,"transport_cost":a.transport_cost,"emissions_kg":a.emissions_kg,"status":a.status,"monsoon_priority":a.monsoon_priority,"supplier_location":a.material.location,"buyer_location":a.demand.location,"supplier_lat":a.material.lat,"supplier_lng":a.material.lng,"buyer_lat":a.demand.lat,"buyer_lng":a.demand.lng,"created_at":a.created_at.isoformat()}
+def allocation_dict(a): return {"id":a.id,"material_id":a.material_id,"demand_id":a.demand_id,"material_title":a.material.title,"demand_title":a.demand.title,"supplier":a.material.supplier.name,"buyer":a.demand.buyer.name,"quantity":a.quantity,"distance_km":a.distance_km,"transport_cost":a.transport_cost,"emissions_kg":a.emissions_kg,"status":a.status,"supplier_location":a.material.location,"buyer_location":a.demand.location,"supplier_lat":a.material.lat,"supplier_lng":a.material.lng,"buyer_lat":a.demand.lat,"buyer_lng":a.demand.lng,"created_at":a.created_at.isoformat()}
 
 @app.get("/api/health")
 def health(): return {"status":"ok","database":"sqlite","synthetic_demo_data":True}
@@ -128,15 +128,15 @@ def run_optimiser(payload:OptimiseIn,db:Session=Depends(get_db),u:User=Depends(r
     for d in demands:
         committed=db.query(func.coalesce(func.sum(Allocation.quantity),0)).filter(Allocation.demand_id==d.id,Allocation.status.in_(["Confirmed","In Transit","Delivered"])).scalar() or 0
         d.optimizer_quantity=max(0,d.quantity-float(committed))
-    results,method=optimise(materials,demands,payload.monsoon_priority)
+    results,method=optimise(materials,demands)
     # Proposed allocations are replaced on each run; only unconfirmed proposals may be replaced.
     db.query(Allocation).filter(Allocation.status=="Proposed").delete(synchronize_session=False); db.commit()
     out=[]
     for r in results:
-        a=Allocation(material_id=r["material_id"],demand_id=r["demand_id"],quantity=r["quantity"],distance_km=r["distance_km"],transport_cost=r["transport_cost"],emissions_kg=r["emissions_kg"],status="Proposed",monsoon_priority=payload.monsoon_priority)
+        a=Allocation(material_id=r["material_id"],demand_id=r["demand_id"],quantity=r["quantity"],distance_km=r["distance_km"],transport_cost=r["transport_cost"],emissions_kg=r["emissions_kg"],status="Proposed",monsoon_priority=0)
         db.add(a); db.flush(); out.append(a)
-    db.add(AuditLog(actor_id=u.id,action="OPTIMISATION_RUN",details=f"{len(out)} proposed matches; monsoon priority {payload.monsoon_priority}%")); db.commit()
-    return {"allocations":[allocation_dict(a) for a in out],"count":len(out),"method":method,"monsoon_priority":payload.monsoon_priority,"assumptions":"Road distance is estimated as 1.28 × straight-line distance; transport rate ₹24/tonne-km; emissions 0.12 kg CO₂e/tonne-km. Synthetic demo assumptions, not carrier quotes or audited factors."}
+    db.add(AuditLog(actor_id=u.id,action="OPTIMISATION_RUN",details=f"{len(out)} proposed matches")); db.commit()
+    return {"allocations":[allocation_dict(a) for a in out],"count":len(out),"method":method,"assumptions":"Road distance is estimated as 1.28 × straight-line distance; transport rate ₹24/tonne-km; emissions 0.12 kg CO₂e/tonne-km. Synthetic demo assumptions, not carrier quotes or audited factors."}
 @app.get("/api/allocations")
 def list_allocations(db:Session=Depends(get_db),u:User=Depends(current_user)):
     q=db.query(Allocation).options(joinedload(Allocation.material).joinedload(Material.supplier),joinedload(Allocation.demand).joinedload(Demand.buyer))
